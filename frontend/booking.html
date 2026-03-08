@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure Booking | SmartPark</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #F3F4F6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .booking-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .slot-badge {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .time-selector {
+            margin: 2rem 0;
+        }
+
+        .range-slider {
+            width: 100%;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="booking-card">
+        <div id="vehicle-selection-container"
+            style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #E5E7EB;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.8rem; color: var(--text-main);">Select
+                Vehicle</label>
+            <div id="vehicles-pills" style="display: flex; gap: 0.8rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                <!-- Vehicle pills will be loaded here -->
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Loading your vehicles...</p>
+            </div>
+            <input type="hidden" id="selected-vehicle-plate" value="">
+        </div>
+
+        <div class="slot-badge" id="slot-display">Slot #--</div>
+        <h2>Customize Your Timeline</h2>
+        <p style="color: var(--text-muted);">Select how long you need the parking spot.</p>
+
+        <div class="time-selector">
+            <label style="display: flex; justify-content: space-between; font-weight: 600;">
+                <span>Duration</span>
+                <span style="color: var(--primary);"><span id="hrs-val">2</span> Hours</span>
+            </label>
+            <input type="range" class="range-slider" min="1" max="12" value="2" id="duration-slider"
+                oninput="updateCost()">
+        </div>
+
+        <div style="background: #F9FAFB; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span>Rate</span>
+                <span>₹20 / hr</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.2rem;">
+                <span>Total Amount</span>
+                <span>₹<span id="total-val">40</span></span>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%; padding: 1rem;" onclick="proceedToPay()">
+            Next: Payment ➔
+        </button>
+        <button class="btn btn-outline" style="width: 100%; padding: 1rem; margin-top: 0.5rem;"
+            onclick="window.history.back()">Cancel</button>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const slotId = params.get('slot');
+        const locationName = params.get('location') || 'Main Square';
+        document.getElementById('slot-display').innerText = `Slot #${slotId}`;
+
+        // Auth Check & Vehicle Loading
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user._id) {
+            alert("Please login to proceed with booking");
+            window.location.href = 'login.html';
+        } else {
+            loadUserVehicles();
+        }
+
+        async function loadUserVehicles() {
+            const container = document.getElementById('vehicles-pills');
+            try {
+                const res = await fetch(`/api/vehicles/user/${user._id}`);
+                const data = await res.json();
+
+                if (data.success && data.vehicles.length > 0) {
+                    container.innerHTML = data.vehicles.map((v, index) => `
+                        <div class="vehicle-pill ${index === 0 ? 'active' : ''}" 
+                             onclick="selectVehicle(this, '${v.vehicleNumber}')"
+                             style="padding: 0.6rem 1rem; border: 1.5px solid #E5E7EB; border-radius: 0.8rem; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
+                            <div style="font-weight: 700; font-size: 0.9rem;">${v.vehicleNumber}</div>
+                            <div style="font-size: 0.75rem; color: #6B7280;">${v.brand}</div>
+                        </div>
+                    `).join('');
+
+                    // Set default selected vehicle
+                    document.getElementById('selected-vehicle-plate').value = data.vehicles[0].vehicleNumber;
+
+                    // Add styles for active pill
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        .vehicle-pill.active {
+                            border-color: #3B82F6 !important;
+                            background: #EFF6FF;
+                            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+                        }
+                    `;
+                    document.head.appendChild(style);
+                } else {
+                    container.innerHTML = `
+                        <p style="font-size: 0.9rem; color: #EF4444;">No vehicles found. 
+                        <a href="dashboard.html" style="color: #3B82F6; text-decoration: underline;">Add one here</a></p>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p style="color: red;">Error loading vehicles</p>';
+            }
+        }
+
+        function selectVehicle(el, plate) {
+            document.querySelectorAll('.vehicle-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('selected-vehicle-plate').value = plate;
+        }
+
+        function updateCost() {
+            const hrs = document.getElementById('duration-slider').value;
+            document.getElementById('hrs-val').innerText = hrs;
+            document.getElementById('total-val').innerText = hrs * 20;
+        }
+
+        function proceedToPay() {
+            const hrs = document.getElementById('duration-slider').value;
+            const amt = hrs * 20;
+            const plate = document.getElementById('selected-vehicle-plate').value;
+
+            if (!plate) {
+                alert("Please select or add a vehicle first");
+                return;
+            }
+
+            // Redirect to Payment Gateway with details
+            window.location.href = `payment-gateway.html?slot=${slotId}&hours=${hrs}&amount=${amt}&location=${encodeURIComponent(locationName)}&plate=${plate}`;
+        }
+    </script>
+</body>
+
+</html>

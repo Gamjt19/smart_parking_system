@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartPark | Register</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body style="background: linear-gradient(135deg, #d4edda, #ffffff); overflow: auto;">
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 style="color: var(--primary); margin-bottom: 0.5rem;">Create Account</h1>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Join Smart Parking today</p>
+
+            <form id="register-form">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="name" placeholder="John Doe" required>
+                </div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="user@example.com" required>
+                </div>
+                <div class="input-group">
+                    <label>License Plate Number</label>
+                    <input type="text" id="plate" placeholder="KA01AB1234" required style="text-transform: uppercase;">
+                </div>
+                <div class="input-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phone" placeholder="9876543210" required pattern="[0-9]{10}">
+                </div>
+                <div class="input-group">
+                    <label>Car Model</label>
+                    <input type="text" id="model" placeholder="Honda City" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="••••••" required>
+                </div>
+                <div class="input-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="confirm-password" placeholder="••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+            </form>
+
+            <p style="margin-top: 1.5rem; font-size: 0.9rem;">
+                Already have an account? <a href="login.html" style="color: var(--primary); font-weight: 600;">Sign In
+                    Here</a>
+            </p>
+            <div style="margin-top: 1rem;">
+                <a href="index.html" style="color: var(--text-muted); font-size: 0.9rem;">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const plate = document.getElementById('plate').value;
+            const phone = document.getElementById('phone').value;
+            const model = document.getElementById('model').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            if (password !== confirmPassword) {
+                alert("Passwords do not match!");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, plate, phone, model, password })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    alert("Registration successful! Redirecting to dashboard...");
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred');
+            }
+        });
+    </script>
+</body>
+
+</html>

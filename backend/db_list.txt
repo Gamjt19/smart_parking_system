@@ -1,0 +1,48 @@
+Databases: [
+  {
+    "name": "test",
+    "sizeOnDisk": 761856,
+    "empty": false
+  },
+  {
+    "name": "admin",
+    "sizeOnDisk": 368640,
+    "empty": false
+  },
+  {
+    "name": "local",
+    "sizeOnDisk": 24281542656,
+    "empty": false
+  }
+]
+DB: test, Collections: ["users","parkingareas","notifications","ratings","slots","vehicles","parkingentries","bookings","parkinglistings"]
+  -> parkingareas count: 7
+  -> Samples: [
+  {
+    "name": "Kottayam Railway Parking",
+    "id": "PUB-181138",
+    "isPublic": true
+  },
+  {
+    "name": "Lulu Mall Parking",
+    "id": "PUB-800859",
+    "isPublic": true
+  },
+  {
+    "name": "Muvattupuzha",
+    "id": "PUB-753989",
+    "isPublic": true
+  },
+  {
+    "name": "Medical College Ground",
+    "id": "PUB-899975",
+    "isPublic": true
+  },
+  {
+    "name": "SGM parking",
+    "id": "OWN-7760",
+    "isPublic": false
+  }
+]
+DB: admin, Collections: []
+DB: local, Collections: ["oplog.rs"]

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Control Center | SPS V3</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Admin V2 Specific Styles */
+        :root {
+            --admin-primary: #10B981;
+            --admin-dark: #064E3B;
+            --admin-light: #D1FAE5;
+            --admin-bg: #F8FAFC;
+            --admin-sidebar: #064E3B;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --shadow-premium: 0 10px 30px -5px rgba(0, 0, 0, 0.1), 0 4px 12px -5px rgba(0, 0, 0, 0.04);
+            --border: #E2E8F0;
+        }
+
+        body {
+            background: var(--admin-bg);
+            color: #1E293B;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: 100vh;
+            background: #F1F5F9;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #064E3B 0%, #065F46 100%);
+            color: white;
+            padding: 2.5rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 3rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: white;
+        }
+
+        .menu-item {
+            padding: 0.9rem 1.25rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.6rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 500;
+            color: #A7F3D0;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .menu-item.active {
+            background: #059669;
+            color: white;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .main-content {
+            padding: 2.5rem;
+            overflow-y: auto;
+            position: relative;
+            background: #F8FAFC;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h2 {
+            font-size: 1.875rem;
+            font-weight: 800;
+            color: #0F172A;
+            letter-spacing: -0.025em;
+            margin: 0;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .stat-card-v2 {
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: var(--shadow-premium);
+            border: 1px solid white;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card-v2:hover {
+            transform: translateY(-5px);
+            border-color: var(--admin-primary);
+        }
+
+        .stat-card-v2::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: var(--admin-primary);
+        }
+
+        .stat-card-v2 small {
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 700;
+            color: #64748B;
+            font-size: 0.7rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-val {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #1E293B;
+            letter-spacing: -1px;
+        }
+
+        h3 {
+            margin-bottom: 1.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1E293B;
+            letter-spacing: -0.02em;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            height: 350px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            box-shadow: var(--shadow-premium);
+            margin-bottom: 3.5rem;
+            border: 1px solid white;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 8%;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .bar {
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            opacity: 0.85;
+        }
+
+        .bar:hover {
+            opacity: 1;
+            filter: brightness(1.1);
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.85rem;
+            background: transparent;
+        }
+
+        .logs-table th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            color: #64748B;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+        }
+
+        .logs-table tr {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s;
+        }
+
+        .logs-table tr:hover {
+            transform: scale(1.005);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .logs-table td {
+            padding: 1.5rem;
+            border: none;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .logs-table td:first-child {
+            border-radius: 1rem 0 0 1rem;
+        }
+
+        .logs-table td:last-child {
+            border-radius: 0 1rem 1rem 0;
+        }
+
+        .violation-alert {
+            background: white;
+            border: 1px solid #FFE4E6;
+            border-left: 6px solid #EF4444;
+            color: #1E293B;
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-premium);
+        }
+
+        .violation-alert strong {
+            color: #E11D48;
+            font-size: 1.1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--border);
+            color: #475569;
+        }
+
+        .btn-outline:hover {
+            background: #F1F5F9;
+            border-color: #CBD5E1;
+        }
+
+        .btn-primary {
+            background: var(--admin-primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--admin-dark);
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .badge {
+            padding: 0.4rem 0.85rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .bg-danger {
+            background: #FECACA;
+            color: #991B1B;
+        }
+
+        .bg-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <h2>🛡️ SPS Admin</h2>
+            <nav style="margin-top: 2rem;">
+                <div class="menu-item active" onclick="showSection('overview')">📊 Overview</div>
+                <div class="menu-item" onclick="showSection('live')">🎥 Live Monitoring</div>
+                <div class="menu-item" onclick="showSection('ai')">🤖 AI Insights</div>
+                <div class="menu-item" onclick="showSection('violations')">⚠️ Violations <span class="badge"
+                        id="v-count">0</span></div>
+                <div class="menu-item" onclick="showSection('users')">👥 Users</div>
+                <div class="menu-item" onclick="showSection('listings')">📋 Land Listings</div>
+            </nav>
+        </aside>
+
+        <main class="main-content" style="background: #F3F4F6;">
+            <header class="header">
+                <h2 id="page-title">System Overview</h2>
+                <div style="font-size: 0.9rem; color: #6B7280;">System Status: <span
+                        style="color: var(--primary); font-weight: bold;">● Online</span></div>
+            </header>
+
+            <!-- 1. Overview Section -->
+            <div id="sec-overview" class="section">
+                <div class="grid-3">
+                    <div class="stat-card-v2">
+                        <small>Total Revenue</small>
+                        <div class="stat-val">₹<span id="rev-val">0</span></div>
+                    </div>
+                    <div class="stat-card-v2" style="border-color: #F59E0B;">
+                        <small>Active Violations</small>
+                        <div class="stat-val" id="viol-val">0</div>
+                    </div>
+                    <div class="stat-card-v2" style="border-color: #3B82F6;">
+                        <small>Avg. Occupancy</small>
+                        <div class="stat-val">78%</div>
+                    </div>
+                </div>
+
+                <h3>Recent Activity Logs</h3>
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Slot ID</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-body"></tbody>
+                </table>
+            </div>
+
+            <!-- 2. Live Monitor -->
+            <div id="sec-live" class="section hidden">
+                <div class="parking-grid" id="admin-grid"></div>
+            </div>
+
+            <!-- 3. AI Insights -->
+            <div id="sec-ai" class="section hidden">
+                <h3>Predicted Slot Availability (Next 12 Hours)</h3>
+                <p style="color: #6B7280; margin-bottom: 2rem;">AI Model Accuracy: 94.5% based on historical data.</p>
+
+                <div class="chart-container" id="ai-chart">
+                    <!-- Bars injected via JS -->
+                </div>
+            </div>
+
+            <!-- 4. Violations -->
+            <div id="sec-violations" class="section hidden">
+                <div id="violation-list"></div>
+            </div>
+
+            <!-- 5. Users (New) -->
+            <div id="sec-users" class="section hidden">
+                <h3>Registered Users</h3>
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Plate</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-body"></tbody>
+                </table>
+            </div>
+
+            <!-- 6. Listings Approval (New) -->
+            <div id="sec-listings" class="section hidden">
+                <h3>Pending Parking Listings</h3>
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Owner Email</th>
+                            <th>Capacity</th>
+                            <th>Price / Hr</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listings-body"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/admin-v2.js"></script>
+    <script>
+        // Fetch users when the Users section is active or on load
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/admin/users');
+                const users = await res.json();
+                const tbody = document.getElementById('users-body');
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u._id}</td>
+                        <td>${u.name}</td>
+                        <td>${u.email}</td>
+                        <td>${u.plate || 'N/A'}</td>
+                        <td><span class="badge ${u.role === 'admin' ? 'bg-danger' : 'bg-success'}" style="padding: 2px 6px; border-radius: 4px; color: white;">${u.role}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Failed to load users", err);
+            }
+        }
+
+        // Hook into showSection if possible, or just load on click. 
+        // Since showSection is likely global, we can override it or just add a listener to the menu item.
+        // For simplicity, we expose a wrapper.
+        const originalShowSection = window.showSection || function (id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById('sec-' + id).classList.remove('hidden');
+        };
+
+        window.showSection = function (id) {
+            // Call original logic (re-implemented simply here if not accessible, 
+            // but assumes admin-v2.js defines it. We'll simply replicate the class toggling to be safe 
+            // or trust admin-v2.js is loaded. Actually, let's just add the click handler to the new menu item explicitly)
+
+            // Re-implementing basic toggle to ensure it works for the new section
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('sec-' + id).classList.remove('hidden');
+
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            // Highlight clicked item based on text matching as quick hack since no IDs
+            document.querySelectorAll('.menu-item').forEach(m => {
+                if (m.getAttribute('onclick').includes(id)) m.classList.add('active');
+            });
+
+            if (id === 'users') loadUsers();
+            if (id === 'listings') loadListings();
+        };
+
+        async function loadListings() {
+            try {
+                const res = await fetch('/api/admin/listings/pending');
+                const data = await res.json();
+                const tbody = document.getElementById('listings-body');
+                if (data.listings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No pending listings!</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.listings.map(l => `
+                    <tr>
+                        <td>${l.title}</td>
+                        <td>${l.ownerId ? l.ownerId.email : 'Unknown'}</td>
+                        <td>${l.capacity} Slots</td>
+                        <td>₹${l.pricePerHour}</td>
+                        <td>
+                            <button onclick="approveListing('${l._id}')" style="background:#10B981; color:white; border:none; padding:4px 8px; cursor:pointer;">Approve</button>
+                            <button onclick="rejectListing('${l._id}')" style="background:#EF4444; color:white; border:none; padding:4px 8px; cursor:pointer;">Reject</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Failed to load listings", err);
+            }
+        }
+
+        async function approveListing(id) {
+            if (!confirm('Approve this parking listing?')) return;
+            const res = await fetch('/api/admin/listings/approve/' + id, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            loadListings();
+        }
+
+        async function rejectListing(id) {
+            if (!confirm('Reject this parking listing?')) return;
+            const res = await fetch('/api/admin/listings/' + id, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message);
+            loadListings();
+        }
+    </script>
+</body>
+
+</html>

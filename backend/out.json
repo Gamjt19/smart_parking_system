@@ -1,0 +1,50 @@
+[
+  {
+    "b_id": "69a9a7a54b8d6b2c7e0228e1",
+    "status": "cancelled",
+    "b_vehicleId": "69a9a7a44b8d6b2c7e0228d8",
+    "b_parkingAreaId": "69a9a7a54b8d6b2c7e0228db"
+  },
+  {
+    "b_id": "69aa98595c681e295438ee8c",
+    "status": "cancelled",
+    "b_vehicleId": "69aa98585c681e295438ee83",
+    "b_parkingAreaId": "69aa98585c681e295438ee86"
+  },
+  {
+    "b_id": "69aa988f5c681e295438eeb7",
+    "status": "completed",
+    "b_vehicleId": "69aa988f5c681e295438eeb2",
+    "b_parkingAreaId": "69a9a7a54b8d6b2c7e0228db"
+  },
+  {
+    "b_id": "69aade7a732c7d2f0d9647a4",
+    "status": "completed",
+    "b_vehicleId": "69aa41aaca1d0c11ffab4524",
+    "b_parkingAreaId": "69aade79732c7d2f0d96479e"
+  },
+  {
+    "b_id": "69aae2f4247cd6a825ea8a33",
+    "status": "completed",
+    "b_vehicleId": "69a99dbeeda6daed33325ff1",
+    "b_parkingAreaId": "69aae2f3247cd6a825ea8a2d"
+  },
+  {
+    "b_id": "69ad29f0c452f133e393f6b4",
+    "status": "cancelled",
+    "b_vehicleId": "69ad0cb87c0030d3d3de77bd",
+    "b_parkingAreaId": "69ad0fb99f4635577ae4d5f0"
+  },
+  {
+    "b_id": "69ad34f9c8c8d97e6a91d9e6",
+    "status": "cancelled",
+    "b_vehicleId": "69ad0cb87c0030d3d3de77bd",
+    "b_parkingAreaId": "69ad0fb99f4635577ae4d5f0"
+  },
+  {
+    "b_id": "69ad3783c8c8d97e6a91da4d",
+    "status": "completed",
+    "b_vehicleId": "69ad0cb87c0030d3d3de77bd",
+    "b_parkingAreaId": "69ad0fb99f4635577ae4d5f0"
+  }
+]

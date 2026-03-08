@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - SPS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Admin specific overrides */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 0.8rem;
+            border: 1px solid var(--border-glass);
+        }
+
+        .stat-val {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🅿️ SPS Admin</div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Driver App</a>
+            <a href="admin.html" class="nav-link active">Admin Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Slots</h3>
+                <div class="stat-val" id="stat-total">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Occupied</h3>
+                <div class="stat-val" style="color: var(--status-occupied);" id="stat-occupied">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Revenue (Est)</h3>
+                <div class="stat-val" style="color: var(--status-available);">$<span id="stat-revenue">0</span></div>
+            </div>
+        </div>
+
+        <h2>Live Slot Management</h2>
+        <div id="admin-map" class="parking-map"></div>
+
+        <h2 style="margin-top: 2rem;">Registered Users</h2>
+        <div class="user-table-container" style="overflow-x: auto;">
+            <table
+                style="width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 0.8rem; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(255,255,255,0.05); text-align: left;">
+                        <th style="padding: 1rem;">ID</th>
+                        <th style="padding: 1rem;">Name</th>
+                        <th style="padding: 1rem;">Email</th>
+                        <th style="padding: 1rem;">Plate</th>
+                        <th style="padding: 1rem;">Phone</th>
+                        <th style="padding: 1rem;">Model</th>
+                        <th style="padding: 1rem;">Role</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    <!-- Users will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>

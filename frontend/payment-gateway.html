@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Checkout | SmartPark</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #F3F4F6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .checkout-container {
+            background: white;
+            width: 100%;
+            max-width: 900px;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+        }
+
+        .summary-section {
+            padding: 3rem;
+            background: #FAFAFA;
+            border-right: 1px solid #E5E7EB;
+        }
+
+        .payment-section {
+            padding: 3rem;
+        }
+
+        h2 {
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .summary-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9CA3AF;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1F2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .slot-tag {
+            background: #3B82F6;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        .total-row {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed #E5E7EB;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .total-amount {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #10B981;
+        }
+
+        /* Payment Form */
+        .pay-method {
+            border: 1px solid #E5E7EB;
+            padding: 1rem;
+            border-radius: 0.8rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s;
+        }
+
+        .pay-method:hover,
+        .pay-method.active {
+            border-color: #3B82F6;
+            background: #EFF6FF;
+        }
+
+        .pay-btn {
+            width: 100%;
+            padding: 1rem;
+            background: #10B981;
+            color: white;
+            border: none;
+            border-radius: 0.8rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pay-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .secure-badge {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            color: #6B7280;
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .checkout-container {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-section {
+                border-right: none;
+                border-bottom: 1px solid #E5E7EB;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="checkout-view" class="checkout-container">
+        <!-- Left: Order Summary -->
+        <div class="summary-section">
+            <h2>Booking Summary</h2>
+            <p class="subtitle">Review your parking details before proceeding.</p>
+
+            <div class="summary-item">
+                <div class="summary-label">Location</div>
+                <div class="summary-value">📍 <span id="s-location">Loading...</span></div>
+            </div>
+
+            <div class="summary-item">
+                <div class="summary-label">Date & Time</div>
+                <div class="summary-value">🕒 <span id="s-time">Loading...</span></div>
+            </div>
+
+            <div class="summary-item">
+                <div class="summary-label">Selected Slots</div>
+                <div class="summary-value" id="s-slots">Loading...</div>
+            </div>
+
+            <div class="total-row">
+                <span class="total-label">Total Amount</span>
+                <span class="total-amount">₹<span id="s-amount">0</span></span>
+            </div>
+        </div>
+
+        <!-- Right: Payment -->
+        <div class="payment-section">
+            <h2>Select Payment Method</h2>
+            <p class="subtitle">All transactions are secure and encrypted.</p>
+
+            <div class="pay-method active" onclick="selectMethod(this)">
+                <span>📱</span>
+                <div>
+                    <strong>UPI / GPay / PhonePe</strong>
+                    <div style="font-size:0.8rem; color:#6B7280">Instant Payment</div>
+                </div>
+            </div>
+
+            <div class="pay-method" onclick="selectMethod(this)">
+                <span>💳</span>
+                <div>
+                    <strong>Credit / Debit Card</strong>
+                    <div style="font-size:0.8rem; color:#6B7280">Visa, Mastercard, RuPay</div>
+                </div>
+            </div>
+
+            <button id="pay-btn" class="pay-btn" onclick="processPayment()">Pay Securely</button>
+
+            <div id="processing" class="hidden" style="text-align:center; margin-top:2rem; color:#3B82F6;">
+                <strong>Processing Payment...</strong>
+            </div>
+
+            <div class="secure-badge">
+                🔒 SSL Encrypted Transaction
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket View (Hidden initially) -->
+    <div id="ticket-view" class="hidden animate-fade-in">
+        <div class="ticket-card">
+            <div class="ticket-header">
+                <div>
+                    <h3 style="margin:0;">PARKING TICKET</h3>
+                    <small>SmartPark Digital Pass</small>
+                </div>
+                <div class="ticket-qr">🔳</div>
+            </div>
+
+            <div class="ticket-body">
+                <div class="ticket-row">
+                    <div>
+                        <div class="label">Location</div>
+                        <div class="value" id="t-location">--</div>
+                    </div>
+                </div>
+
+                <div class="ticket-row">
+                    <div>
+                        <div class="label">Date</div>
+                        <div class="value" id="t-date">Feb 08, 2026</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="label">Duration</div>
+                        <div class="value"><span id="t-hours">1</span> Hours</div>
+                    </div>
+                </div>
+
+                <div class="ticket-row">
+                    <div>
+                        <div class="label">Timing</div>
+                        <div class="value"><span id="t-start">--</span> - <span id="t-end">--</span></div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="label">Plate No.</div>
+                        <div class="value" id="t-plate">--</div>
+                    </div>
+                </div>
+
+                <div class="ticket-divider"></div>
+
+                <div class="ticket-row" style="margin-top:1rem;">
+                    <div>
+                        <div class="label">Parking Slots</div>
+                        <div class="value large" id="t-slots">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ticket-footer">
+                <div>
+                    <div class="label">Paid Amount</div>
+                    <div class="total-paid">₹<span id="t-amount">0</span></div>
+                </div>
+                <div class="status-success">✅ CONFIRMED</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-download" onclick="downloadTicket()">🎟 Download Ticket</button>
+            <a href="dashboard.html" class="btn-home">⬅ Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const slotsStr = params.get('slot') || '';
+        const locationStr = params.get('location') || 'Unknown Location';
+        const startStr = params.get('start') || '00:00';
+        const endStr = params.get('end') || '00:00';
+        const dateStr = params.get('date') || new Date().toISOString().split('T')[0];
+        const amountStr = params.get('amount') || '0';
+        const hoursStr = params.get('hours') || '1';
+        const areaIdStr = params.get('areaId') || '';
+        const plateStr = params.get('plate');
+        const user = JSON.parse(localStorage.getItem('user')) || { email: 'guest@sps.com', name: 'User' };
+
+        // Populate Summary
+        const decodedLoc = decodeURIComponent(locationStr);
+        document.getElementById('s-location').innerText = decodedLoc;
+        document.getElementById('s-time').innerText = `${dateStr} | ${startStr} - ${endStr}`;
+        document.getElementById('s-amount').innerText = amountStr;
+
+        // Populate Ticket (Hidden for now)
+        document.getElementById('t-location').innerText = decodedLoc;
+        document.getElementById('t-date').innerText = dateStr;
+        document.getElementById('t-start').innerText = startStr;
+        document.getElementById('t-end').innerText = endStr;
+        document.getElementById('t-amount').innerText = amountStr;
+        document.getElementById('t-slots').innerText = slotsStr;
+        document.getElementById('t-hours').innerText = hoursStr;
+        document.getElementById('t-plate').innerText = plateStr || user.plate || 'KA-01-SP-2026';
+
+        // Render slots tags
+        const slotContainer = document.getElementById('s-slots');
+        if (slotsStr === 'AUTO') {
+            slotContainer.innerHTML = '<span class="slot-tag" style="background:#6B7280">System Assigned</span>';
+        } else if (slotsStr) {
+            slotContainer.innerHTML = '';
+            slotsStr.split(',').forEach(s => {
+                const tag = document.createElement('span');
+                tag.className = 'slot-tag';
+                tag.innerText = s;
+                tag.style.marginRight = '0.5rem';
+                slotContainer.appendChild(tag);
+            });
+        } else {
+            slotContainer.innerText = 'No slots selected';
+        }
+
+        function selectMethod(el) {
+            document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        async function processPayment() {
+            const btn = document.getElementById('pay-btn');
+            const proc = document.getElementById('processing');
+            const checkout = document.getElementById('checkout-view');
+            const ticket = document.getElementById('ticket-view');
+
+            btn.classList.add('hidden');
+            proc.classList.remove('hidden');
+
+            // Simulate Network Delay
+            await new Promise(r => setTimeout(r, 2000));
+
+            try {
+                const res = await fetch('/api/confirm-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        slotIds: slotsStr,
+                        userId: user.email,
+                        plate: plateStr || user.plate || 'Unknown',
+                        location: decodedLoc,
+                        areaId: areaIdStr,
+                        date: dateStr,
+                        start: startStr,
+                        end: endStr,
+                        hours: hoursStr
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Update Ticket with actual slots from server
+                    if (data.booked && data.booked.length > 0) {
+                        document.getElementById('t-slots').innerText = data.booked.join(', ');
+                    }
+
+                    // Save booked slots locally so dashboard can show them as occupied
+                    const booked = JSON.parse(localStorage.getItem('bookedSlots') || '[]');
+                    const realSlots = data.booked || slotsStr.split(',');
+                    const newBookings = realSlots.map(s => `${decodedLoc}:${s}`);
+                    localStorage.setItem('bookedSlots', JSON.stringify([...booked, ...newBookings]));
+
+                    // Transition to Ticket View
+                    checkout.classList.add('hidden');
+                    proc.classList.add('hidden');
+                    ticket.classList.remove('hidden');
+                } else {
+                    alert('Booking Failed: ' + (data.message || 'Unknown Error'));
+                    btn.classList.remove('hidden');
+                    proc.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Connection Error');
+                btn.classList.remove('hidden');
+                proc.classList.add('hidden');
+            }
+        }
+
+        function downloadTicket() {
+            window.print();
+        }
+    </script>
+</body>
+
+</html>

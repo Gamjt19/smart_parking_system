@@ -1,0 +1,11 @@
+All Listings (1):
+- SGM parking [69ad0faf9f4635577ae4d5e8] Approved: true, Owner: 69a936813bf2f4c44928fade
+
+All Areas (7):
+- Kottayam Railway Parking [PUB-181138] mongoid: 69a9a7a54b8d6b2c7e0228db, isPublic: true, coords: [76.2673,9.9312]
+- Lulu Mall Parking [PUB-800859] mongoid: 69aa98585c681e295438ee86, isPublic: true, coords: [76.2673,9.9312]
+- Muvattupuzha [PUB-753989] mongoid: 69aade79732c7d2f0d96479e, isPublic: true, coords: [76.2673,9.9312]
+- Medical College Ground [PUB-899975] mongoid: 69aae2f3247cd6a825ea8a2d, isPublic: true, coords: [76.2673,9.9312]
+- SGM parking [OWN-7760] mongoid: 69aaecb37c0030d3d3de7769, isPublic: false, coords: [76.1391,10.9452]
+- SGM parking [OWN-7791] mongoid: 69aaf0ee7c0030d3d3de7799, isPublic: false, coords: [76.56143499930744,9.958100867152888]
+- SGM parking [PRK-D5E8] mongoid: 69ad0fb99f4635577ae4d5f0, isPublic: false, coords: [76.560417,9.955927]

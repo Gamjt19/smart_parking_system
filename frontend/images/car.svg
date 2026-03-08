@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200">
+  <!-- Defs for gradients and shadows -->
+  <defs>
+    <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f0f0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#e0e0e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d0d0d0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="windowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#333;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#111;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dropShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="2" dy="4" result="offsetblur" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Car Body Shape -->
+  <path d="M40,130 Q40,100 70,90 L140,85 L180,50 L340,50 L390,90 L460,95 Q490,100 490,130 L490,160 L450,160 Q450,130 420,130 Q390,130 390,160 L140,160 Q140,130 110,130 Q80,130 80,160 L40,160 Z" fill="url(#bodyGradient)" stroke="#999" stroke-width="2" filter="url(#dropShadow)" />
+
+  <!-- Windows -->
+  <path d="M190,55 L330,55 L375,90 L155,90 Z" fill="url(#windowGradient)" />
+  <line x1="260" y1="55" x2="260" y2="90" stroke="#111" stroke-width="4" />
+
+  <!-- Headlight -->
+  <path d="M460,105 Q475,105 485,115 L480,125 Q465,120 460,105 Z" fill="#fff" stroke="#ccc" />
+  <path d="M462,108 Q472,108 480,115" fill="#ffeb3b" opacity="0.5" />
+
+  <!-- Taillight -->
+  <path d="M40,105 Q55,105 60,125 L40,125 Z" fill="#d32f2f" stroke="#b71c1c" />
+
+  <!-- Door Handles -->
+  <rect x="200" y="105" width="25" height="5" rx="2" fill="#888" />
+  <rect x="300" y="105" width="25" height="5" rx="2" fill="#888" />
+
+  <!-- Side Moldings -->
+  <path d="M85,140 L445,140" stroke="#bbb" stroke-width="2" />
+
+  <!-- Wheels -->
+  <!-- Front Wheel -->
+  <g transform="translate(420, 160)">
+    <circle cx="0" cy="0" r="28" fill="#111" />
+    <circle cx="0" cy="0" r="24" fill="#333" />
+    <circle cx="0" cy="0" r="18" fill="#ddd" /> <!-- Rim -->
+    <path d="M-18,0 L18,0 M0,-18 L0,18 M-12,-12 L12,12 M-12,12 L12,-12" stroke="#bbb" stroke-width="4" />
+  </g>
+
+  <!-- Rear Wheel -->
+  <g transform="translate(110, 160)">
+    <circle cx="0" cy="0" r="28" fill="#111" />
+    <circle cx="0" cy="0" r="24" fill="#333" />
+    <circle cx="0" cy="0" r="18" fill="#ddd" /> <!-- Rim -->
+    <path d="M-18,0 L18,0 M0,-18 L0,18 M-12,-12 L12,12 M-12,12 L12,-12" stroke="#bbb" stroke-width="4" />
+  </g>
+  
+  <!-- Bumper details -->
+  <path d="M40,150 Q30,150 40,160" stroke="#999" stroke-width="2" fill="none" />
+  <path d="M490,150 Q500,150 490,160" stroke="#999" stroke-width="2" fill="none" />
+
+</svg>

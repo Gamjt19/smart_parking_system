@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | P4 Park</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Cropper.js for High Accuracy OCR -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>🅿️ P4 Park</h2>
+            <nav style="margin-top: 2rem;">
+                <div class="menu-item active" onclick="switchTab('parking')">🚙 Find Parking</div>
+                <div class="menu-item" onclick="switchTab('ev')">⚡ EV Stations</div>
+                <div class="menu-item" onclick="switchTab('nearby')">🗺️ Nearby Lots</div>
+                <div class="menu-item" onclick="switchTab('scan')">🔍 Vehicle Identification</div>
+                <div class="menu-item" onclick="switchTab('vehicles')">🚗 My Vehicles</div>
+                <div class="menu-item" onclick="switchTab('bookings')">🎟 My Bookings</div>
+                <div class="menu-item" id="header-owner"
+                    style="border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 1rem; color: var(--primary);">
+                    <strong>OWNER FEATURES</strong>
+                </div>
+                <div class="menu-item" onclick="switchTab('list-land')">🏗️ List Your Land</div>
+                <div class="menu-item hidden" onclick="switchTab('camera-gate')" id="menu-camera-gate">📹 Live Gate
+                    Camera</div>
+                <div class="menu-item hidden" onclick="switchTab('staff')" id="menu-staff">👮 Staff Check-In</div>
+                <div class="menu-item hidden" onclick="switchTab('analytics')" id="menu-analytics">📈 Owner Analytics
+                </div>
+                <div class="menu-item" onclick="switchTab('profile')">👤 My Profile</div>
+            </nav>
+            <div style="margin-top: auto; padding: 1rem; border-top: 1px solid var(--border);">
+                <small>Logged in as</small><br>
+                <strong id="user-name">User</strong>
+                <button class="btn btn-outline" style="width: 100%; margin-top: 1rem; font-size: 0.8rem;"
+                    onclick="logout()">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1 id="page-title">Parking Availability</h1>
+                <div style="position: relative;">
+                    <div class="btn btn-primary" onclick="toggleNotif()"
+                        style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        🔔 <span id="notif-badge"
+                            style="position: absolute; top: -5px; right: -5px; background: red; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 50%; display: none;">0</span>
+                    </div>
+                    <!-- Dropdown -->
+                    <div id="notif-panel" class="hidden"
+                        style="position: absolute; right: 0; top: 50px; width: 300px; background: white; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 0.5rem; z-index: 100; max-height: 400px; overflow-y: auto;">
+                        <div style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: bold;">
+                            Notifications</div>
+                        <div id="notif-list">
+                            <div style="padding: 1rem; color: var(--text-muted); text-align: center;">No new
+                                notifications</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Selection Bar -->
+            <div id="top-vehicle-selection" class="card"
+                style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; padding: 1.2rem 1.8rem; background: linear-gradient(135deg, var(--primary-light), #ffffff); border: 1px solid var(--primary); border-radius: 1.2rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);">
+                <div style="display: flex; align-items: center; gap: 1.2rem;">
+                    <div
+                        style="background: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid var(--primary-light);">
+                        🚗</div>
+                    <div>
+                        <h4 style="margin: 0; color: var(--primary-dark); font-size: 1.1rem; letter-spacing: 0.5px;">
+                            VEHICLE SELECTION</h4>
+                        <p id="selected-vehicle-info"
+                            style="margin: 0; font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">Select a
+                            vehicle for your booking</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <select id="dashboard-vehicle-select" onchange="updateTopVehicleInfo()"
+                        style="padding: 0.7rem 1.2rem; border: 2px solid var(--primary-light); border-radius: 0.8rem; font-size: 1rem; background: white; cursor: pointer; min-width: 250px; font-weight: 700; color: var(--primary-dark); outline: none; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+                        <option value="">Loading vehicles...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 1. Parking View -->
+            <div id="view-parking" class="view-section">
+                <!-- Step 1: List of Areas -->
+                <div id="parking-list-section">
+                    <div class="search-bar-container" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <div
+                            style="flex: 1; display: flex; align-items: center; background: white; border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.5rem;">
+                            <span style="font-size: 1.2rem; margin-right: 0.5rem;">🔍</span>
+                            <input type="text" id="location-global-search" placeholder="Search location"
+                                oninput="filterLocations()" onchange="handleSearchChange(event)"
+                                list="location-suggestions" style="border: none; outline: none; width: 100%;">
+                            <datalist id="location-suggestions"></datalist>
+                            <span style="font-size: 1.2rem; margin-left: 0.5rem;">📍</span>
+                        </div>
+                        <button class="btn btn-primary" onclick="findParkingNearMe()" style="white-space: nowrap;">📍
+                            Near Me</button>
+                    </div>
+
+                    <!-- Filter Bar Hidden per User Request -->
+                    <div class="filter-bar hidden">
+                        <button class="filter-btn active">Today</button>
+                        <button class="filter-btn">Tomorrow</button>
+                        <button class="filter-btn">This Week</button>
+                        <div class="time-range-display">
+                            <span id="display-start-time">10:30 AM</span> — <span id="display-end-time">12:30 PM</span>
+                        </div>
+                        <button class="filter-btn btn-outline"
+                            onclick="document.getElementById('time-modal').classList.remove('hidden')">🕒
+                            Change</button>
+                    </div>
+
+                    <div class="card-grid" id="location-scroll"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; padding: 1rem 0;">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Step 2: Slot Selection (Hidden initially) -->
+                <div id="parking-detail-section" class="hidden">
+                    <button class="btn btn-outline" onclick="goBackToResults()" style="margin-bottom: 1.5rem;">← Back to
+                        Results</button>
+                    <div id="selected-area-header" style="margin-bottom: 2rem;">
+                        <h2 id="detail-area-name" style="color: var(--primary-dark); margin-bottom: 0.5rem;">Area Name
+                        </h2>
+                        <p id="detail-area-meta" style="color: var(--text-muted);"><span id="detail-area-dist">0
+                                km</span> away • <span id="detail-area-rate">₹0</span>/hr</p>
+                    </div>
+
+                    <!-- New: Booking Selection -->
+                    <div class="card"
+                        style="margin-bottom: 2rem; background: #f8fafc; border: 1px solid var(--primary-light);">
+                        <h4 style="margin-bottom: 1rem; color: var(--primary-dark);">Select Duration</h4>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 150px;">
+                                <label style="font-size: 0.8rem; font-weight: 600;">Booking Date</label>
+                                <input type="date" id="booking-date" onchange="updateFooter()"
+                                    style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.4rem;">
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-size: 0.8rem; font-weight: 600;">Arrival Time</label>
+                                <input type="time" id="start-time" value="10:30" onchange="updateFooter()"
+                                    style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.4rem;">
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-size: 0.8rem; font-weight: 600;">Exit Time</label>
+                                <input type="time" id="end-time" value="12:30" onchange="updateFooter()"
+                                    style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.4rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 12px; height: 12px; background: var(--status-avail); border-radius: 50%;">
+                            </div> Available
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 12px; height: 12px; background: var(--status-reserved); border-radius: 50%;">
+                            </div> Reserved
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 12px; height: 12px; background: var(--status-occupied); border-radius: 50%;">
+                            </div> Occupied
+                        </span>
+                    </div>
+
+                    <div id="parking-grid" class="parking-grid">
+                        <!-- Slots Injected Here -->
+                    </div>
+                </div>
+
+                <!-- Hidden Time Modal -->
+                <div id="time-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <h3>Select Time</h3>
+                        <div class="input-group">
+                            <label>Start</label>
+                            <input type="time" id="start-time" value="10:30">
+                        </div>
+                        <div class="input-group">
+                            <label>End</label>
+                            <input type="time" id="end-time" value="12:30">
+                        </div>
+                        <button class="btn btn-primary"
+                            onclick="updateTimeDisplay(); document.getElementById('time-modal').classList.add('hidden')">Apply</button>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div style="display: none; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 12px; height: 12px; background: var(--status-avail); border-radius: 50%;">
+                        </div> Available
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 12px; height: 12px; background: var(--status-reserved); border-radius: 50%;">
+                        </div> Reserved
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 12px; height: 12px; background: var(--status-occupied); border-radius: 50%;">
+                        </div> Occupied
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 12px; height: 12px; background: var(--status-ev); border-radius: 50%;"></div>
+                        EV Only
+                    </span>
+                </div>
+
+                <div id="parking-grid" class="parking-grid" style="display:none;">
+                    <!-- Slots Injected Here -->
+                </div>
+            </div>
+
+            <!-- 2. EV Stations View -->
+            <div id="view-ev" class="view-section hidden">
+                <div style="margin-bottom: 1rem; display: flex; gap: 1rem;">
+                    <input type="text" id="ev-city-search" placeholder="Enter City (e.g. London)"
+                        style="padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; flex: 1;">
+                    <button class="btn btn-primary" onclick="searchCity()">Search City</button>
+                    <button class="btn btn-outline" onclick="findNearMe()">📍 Near Me</button>
+                </div>
+
+                <div id="ev-map"
+                    style="height: 400px; width: 100%; border-radius: 0.8rem; border: 2px solid var(--border); margin-bottom: 2rem; z-index: 1;">
+                </div>
+
+                <h3>Nearby Stations List</h3>
+                <div class="card-grid" id="ev-list"></div>
+            </div>
+
+            <!-- 2.5 Nearby View -->
+            <div id="view-nearby" class="view-section hidden">
+                <div style="margin-bottom: 1rem; display: flex; gap: 1rem;">
+                    <input type="text" id="nearby-city-search" placeholder="Enter City (e.g. New York)"
+                        style="padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; flex: 1;">
+                    <button class="btn btn-primary" onclick="searchNearbyCity()">Search City</button>
+                    <button class="btn btn-outline" onclick="findNearbyMe()">📍 Near Me</button>
+                </div>
+
+                <div id="nearby-map"
+                    style="height: 400px; width: 100%; border-radius: 0.8rem; border: 2px solid var(--border); margin-bottom: 2rem; z-index: 1;">
+                </div>
+
+                <h3>Founded Parking Lots</h3>
+                <div class="card-grid" id="nearby-list"></div>
+            </div>
+
+            <!-- 3. Unified Vehicle Identification View -->
+            <div id="view-scan" class="view-section hidden">
+                <h2>Vehicle Identification System</h2>
+                <p class="subtitle">Search manualy or upload a photo for automatic recognition.</p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+                    <!-- Manual Entry Card -->
+                    <div class="card" style="text-align: center; padding: 2rem;">
+                        <h3 style="margin-bottom: 1.5rem;">Keyboard Entry</h3>
+                        <div style="max-width: 300px; margin: 0 auto;">
+                            <input type="text" id="plate-input" placeholder="e.g. KA01AB1234"
+                                style="font-size: 1.2rem; text-align: center; letter-spacing: 2px; text-transform: uppercase; padding: 0.8rem; width: 100%; margin-bottom: 1rem; border: 2px solid var(--border); border-radius: 0.5rem;">
+                            <button class="btn btn-primary" onclick="scanPlate()" style="width: 100%;">🔍 Search
+                                Database</button>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload Card -->
+                    <div class="card" style="text-align: center; padding: 2rem;">
+                        <h3 style="margin-bottom: 1.5rem;">Photo Recognition</h3>
+                        <div id="scan-preview-container" class="hidden" style="margin-bottom: 1.5rem;">
+                            <div id="cropper-wrapper"
+                                style="max-height: 200px; overflow: hidden; border-radius: 0.5rem; border: 1px solid var(--border);">
+                                <img id="scan-preview" src="#" alt="Preview" style="max-width: 100%;">
+                            </div>
+                        </div>
+
+                        <div id="scan-upload-controls">
+                            <input type="file" id="plate-image-input" accept="image/*" capture="environment"
+                                style="display: none;" onchange="previewScanImage(event)">
+                            <button class="btn btn-primary" style="width: 100%;"
+                                onclick="document.getElementById('plate-image-input').click()">📸 Take Photo /
+                                Upload</button>
+                        </div>
+
+                        <div id="scan-action-controls" class="hidden">
+                            <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;"
+                                onclick="submitPlateScan()">🔍 Scan Plate Now</button>
+                            <button class="btn btn-outline" style="width: 100%;" onclick="resetPlateScan()">Reset /
+                                Change Photo</button>
+                        </div>
+
+                        <div id="scan-loading" class="hidden" style="margin-top: 1rem;">
+                            <div class="spinner"></div>
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem;">Processing OCR...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unified Results Area -->
+                <div id="scan-result" class="hidden"
+                    style="margin-top: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    <!-- Results injected by JS -->
+                </div>
+            </div>
+
+            <!-- 4. Bookings View -->
+            <div id="view-bookings" class="view-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>My Bookings</h2>
+                </div>
+                <!-- Dynamic List -->
+                <div id="bookings-list" style="max-width: 600px;">
+                    <p style="color:var(--text-muted); text-align: center;">Loading bookings...</p>
+                </div>
+            </div>
+
+            <!-- 5. Vehicles View -->
+            <div id="view-vehicles" class="view-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>My Vehicles</h2>
+                    <button class="btn btn-primary"
+                        onclick="document.getElementById('add-vehicle-modal').classList.remove('hidden')">+ Add
+                        Vehicle</button>
+                </div>
+
+                <div id="vehicles-list" class="card-grid">
+                    <!-- Vehicles will be loaded here -->
+                </div>
+
+                <!-- Add Vehicle Modal -->
+                <div id="add-vehicle-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 400px;">
+                        <h3>Add New Vehicle</h3>
+                        <form id="add-vehicle-form" onsubmit="handleAddVehicle(event)">
+                            <div class="input-group">
+                                <label>Vehicle Number</label>
+                                <input type="text" id="veh-number" placeholder="e.g. KA01AB1234" required
+                                    style="text-transform: uppercase;">
+                            </div>
+                            <div class="input-group">
+                                <label>Vehicle Type</label>
+                                <select id="veh-type" required
+                                    style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.5rem;">
+                                    <option value="car">Car / 4-Wheeler</option>
+                                    <option value="bike">Bike / 2-Wheeler</option>
+                                    <option value="heavy">Heavy Vehicle</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Brand / Model</label>
+                                <input type="text" id="veh-brand" placeholder="e.g. Honda City" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Color</label>
+                                <input type="text" id="veh-color" placeholder="e.g. White" required>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                                <button type="button" class="btn btn-outline" style="flex: 1;"
+                                    onclick="document.getElementById('add-vehicle-modal').classList.add('hidden')">Cancel</button>
+                                <button type="submit" class="btn btn-primary" style="flex: 1;">Save Vehicle</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Owner Analytics View -->
+            <div id="view-analytics" class="view-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Parking Owner Analytics</h2>
+                    <button class="btn btn-primary" onclick="alert('Demo: Land Listing UI would open here')">+ List New
+                        Parking</button>
+                </div>
+
+                <div id="analytics-content" class="card-grid">
+                    <p style="color:var(--text-muted); text-align: center; grid-column: 1/-1;">Loading your analytics...
+                    </p>
+                </div>
+            </div>
+
+
+
+
+            <!-- 9. My Profile View -->
+            <div id="view-profile" class="view-section hidden">
+                <h2>My Profile</h2>
+                <p class="subtitle">Management your account details and contact information.</p>
+
+                <div class="card" style="max-width: 500px; margin: 0 auto;">
+                    <form id="profile-form" onsubmit="handleUpdateProfile(event)">
+                        <div class="input-group">
+                            <label>Name</label>
+                            <input type="text" id="profile-name" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Email (Read-only)</label>
+                            <input type="email" id="profile-email" readonly
+                                style="background: #f1f5f9; cursor: not-allowed;">
+                        </div>
+                        <div class="input-group">
+                            <label>Phone Number</label>
+                            <input type="text" id="profile-phone" placeholder="9876543210" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Service Provider (Carrier)</label>
+                            <select id="profile-carrier" required
+                                style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.5rem;">
+                                <option value="Airtel">Airtel</option>
+                                <option value="BSNL">BSNL</option>
+                                <option value="Vodafone">Vodafone</option>
+                                <option value="Jio">Jio</option>
+                            </select>
+                            <small style="color: var(--text-muted); display: block; margin-top: 0.3rem;">Required for
+                                sending/receiving free SMS alerts via email gateway.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">Save
+                            Profile</button>
+                    </form>
+                </div>
+            </div>
+            <!-- 8. Staff Check-In View -->
+            <div id="view-staff" class="view-section hidden">
+                <h2>Staff Parking Check-In</h2>
+                <p class="subtitle">Search and manage vehicle entry/exit for your parking areas.</p>
+
+                <div class="card" style="margin-bottom: 2rem;">
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <label>Select Parking Area</label>
+                            <select id="staff-parking-select"
+                                style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.5rem;">
+                                <option value="">-- Choose Parking --</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 250px;">
+                            <label>Vehicle Number</label>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <input type="text" id="staff-vehicle-input" placeholder="e.g. KL07AB1234"
+                                    style="flex: 1; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.5rem;">
+                                <button class="btn btn-primary" onclick="lookupVehicle()">Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="staff-lookup-result" class="hidden" style="margin-bottom: 2rem;">
+                    <!-- Result card injected here -->
+                </div>
+
+                <div class="card">
+                    <h3>Recent Entries</h3>
+                    <div class="table-container" style="margin-top: 1rem; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                                    <th style="padding: 1rem;">Vehicle</th>
+                                    <th style="padding: 1rem;">Entry Time</th>
+                                    <th style="padding: 1rem;">Method</th>
+                                    <th style="padding: 1rem;">Status</th>
+                                    <th style="padding: 1rem;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-entries-list">
+                                <tr>
+                                    <td colspan="5"
+                                        style="padding: 2rem; text-align: center; color: var(--text-muted);">No
+                                        recent
+                                        entries found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- 9. Owner Analytics View -->
+            <div id="view-analytics" class="view-section hidden">
+                <h2>Owner Analytics</h2>
+                <p class="subtitle">Performance metrics for your parking properties.</p>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="stat-card">
+                        <h3>Total Bookings</h3>
+                        <div class="stat-val" id="owner-stat-bookings">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Revenue</h3>
+                        <div class="stat-val" id="owner-stat-revenue">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Peak Hour</h3>
+                        <div class="stat-val" id="owner-stat-peak">N/A</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Slot Utilization</h3>
+                        <div class="stat-val" id="owner-stat-util">0%</div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h3>Historical Performance</h3>
+                    <div
+                        style="height: 300px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: #f8fafc; border-radius: 0.5rem; margin-top: 1rem;">
+                        [Performance Chart Rendering...]
+                    </div>
+                </div>
+            </div>
+            <div id="view-list-land" class="view-section hidden">
+                <h2>List Your Property</h2>
+                <p class="subtitle">Turn your empty plot or parking space into a source of income.</p>
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <form id="land-listing-form" onsubmit="handleListLand(event)">
+                        <div class="input-group">
+                            <label>Property Title</label>
+                            <input type="text" id="list-title" placeholder="e.g. MG Road Private Parking" required>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="input-group">
+                                <label>Total Slots</label>
+                                <input type="number" id="list-capacity" value="10" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Rate (₹)</label>
+                                <input type="number" id="list-price" value="20" required
+                                    title="Rate based on the selected pricing model">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="input-group">
+                                <label>Slot Numbering</label>
+                                <select id="list-numbering-type"
+                                    style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                                    <option value="numbers">Numbers (1, 2, 3...)</option>
+                                    <option value="letters">Letters (A, B, C...)</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Pricing Model</label>
+                                <select id="list-pricing-model"
+                                    style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                                    <option value="hour">Per Hour</option>
+                                    <option value="10min">Per 10 Minutes</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Location Coordinates (Lat, Lon)</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="list-coords" placeholder="9.9312, 76.2673" required
+                                    style="flex: 1;">
+                                <button type="button" class="btn btn-outline" onclick="getCurrentCoords()">📍
+                                    Current</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Vehicle Types Allowed</label>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <label><input type="checkbox" name="type" value="car" checked> 🚗 Car</label>
+                                <label><input type="checkbox" name="type" value="bike" checked> 🏍️ Bike</label>
+                                <label><input type="checkbox" name="type" value="heavy"> 🚛 Heavy</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">Submit
+                            for Approval</button>
+                    </form>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h3>Your Listings Status</h3>
+                    <div class="table-container" style="margin-top: 1rem; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                                    <th style="padding: 1rem;">Property Title</th>
+                                    <th style="padding: 1rem;">Created Date</th>
+                                    <th style="padding: 1rem;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-listings-list">
+                                <tr>
+                                    <td colspan="3"
+                                        style="padding: 2rem; text-align: center; color: var(--text-muted);">Loading
+                                        your listings...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. Camera Gate View -->
+            <div id="view-camera-gate" class="view-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h2>📹 Live Gate Control</h2>
+                        <p class="subtitle">Automatic vehicle recognition and gate management.</p>
+                    </div>
+                    <div id="gate-status-pill"
+                        style="padding: 0.5rem 1rem; border-radius: 2rem; background: #FEF3C7; color: #92400E; font-weight: 600; font-size: 0.9rem;">
+                        🟡 SYSTEM READY
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem;">
+                    <!-- Video Feed Area -->
+                    <div class="card"
+                        style="padding: 0; overflow: hidden; position: relative; background: #000; display: flex; align-items: center; justify-content: center; min-height: 400px; border: 4px solid var(--primary-light);">
+                        <video id="gate-video" autoplay playsinline
+                            style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        <canvas id="gate-canvas" class="hidden"></canvas>
+
+                        <!-- Overlay Elements -->
+                        <div id="camera-overlay"
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 30%; border: 2px dashed rgba(255,255,255,0.5); pointer-events: none; display: flex; align-items: center; justify-content: center;">
+                            <div
+                                style="color: rgba(255,255,255,0.8); font-size: 0.8rem; background: rgba(0,0,0,0.4); padding: 0.2rem 0.5rem; border-radius: 0.2rem;">
+                                ALIGN PLATE HERE</div>
+                        </div>
+
+                        <div class="ocr-scanning-line hidden" id="scan-line"></div>
+                    </div>
+
+                    <!-- Recognition & Control Panel -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="card">
+                            <h3 style="margin-bottom: 1rem; font-size: 1rem;">LAST DETECTION</h3>
+                            <div id="gate-detect-result"
+                                style="text-align: center; padding: 1rem; min-height: 200px; display: flex; flex-direction: column; justify-content: center; border: 2px inset var(--bg-body); border-radius: 0.5rem;">
+                                <div style="color: var(--text-muted);">Waiting for vehicle...</div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="background: var(--primary-dark); color: white;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1rem; color: #AAF0D1;">MANUAL OVERRIDE</h3>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="manual-gate-plate" placeholder="ENTER PLATE"
+                                    style="flex: 1; padding: 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 0.5rem; text-transform: uppercase; letter-spacing: 2px;">
+                                <button class="btn btn-primary" onclick="manualGateCheck()"
+                                    style="padding: 0 1.5rem; background: #AAF0D1; color: var(--primary-dark);">GO</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h3>Live Activity Log</h3>
+                    <div id="gate-activity-log"
+                        style="margin-top: 1rem; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; background: #f8fafc; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                        <div style="color: #64748b;">[System initialized. Waiting for feed...]</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <!-- Booking Footer -->
+        <div id="booking-footer" class="booking-footer hidden">
+            <div class="booking-info">
+                <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                    <small style="color: var(--text-muted); font-weight: 600;">Slot</small>
+                    <strong id="selected-slot-display">--</strong>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-end;">
+                    <small style="color: var(--text-muted); font-weight: 600;">Price</small>
+                    <strong id="price-display">₹0</strong>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="proceedToPayment()">Proceed to Pay</button>
+        </div>
+    </div>
+
+    <!-- Exit Summary Modal -->
+    <div id="exit-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 450px;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🏁</div>
+                <h3 style="font-size: 1.5rem; color: var(--primary-dark);">Parking Summary</h3>
+                <p style="color: var(--text-muted);">Thank you for using P4 Park</p>
+            </div>
+
+            <div id="exit-overstay-alert" class="hidden"
+                style="background: #FEF2F2; border: 1px solid #EF4444; color: #B91C1C; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.7rem;">
+                <span>⚠️</span>
+                <span id="exit-overstay-msg"></span>
+            </div>
+
+            <div class="summary-details"
+                style="background: var(--bg-body); padding: 1.5rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem;">
+                    <span style="color: var(--text-muted);">Entry Time</span>
+                    <span id="summary-entry" style="font-weight: 600;">--</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem;">
+                    <span style="color: var(--text-muted);">Exit Time</span>
+                    <span id="summary-exit" style="font-weight: 600;">--</span>
+                </div>
+                <div
+                    style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.8rem;">
+                    <span style="color: var(--text-muted);">Total Duration</span>
+                    <span id="summary-duration" style="font-weight: 600;">--</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.8rem; font-size: 1.2rem;">
+                    <strong style="color: var(--primary-dark);">Total Charge</strong>
+                    <strong id="summary-charge" style="color: var(--primary);">₹0</strong>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%;"
+                onclick="document.getElementById('exit-modal').classList.add('hidden'); fetchBookings();">Close &
+                Return</button>
+        </div>
+    </div>
+
+    <!-- Booking Logic is simpler now, handled via prompts in this demo -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/dashboard.js?v=1.1"></script>
+    <script src="js/extensions.js?v=1.1"></script>
+    <script src="js/ocr-system.js?v=1.1"></script>
+</body>
+
+</html>

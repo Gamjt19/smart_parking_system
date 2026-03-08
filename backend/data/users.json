@@ -1,0 +1,60 @@
+[
+  {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@sps.com",
+    "plate": "ADMIN01",
+    "password": "admin",
+    "role": "admin"
+  },
+  {
+    "id": 2,
+    "name": "Demo User",
+    "email": "user@example.com",
+    "plate": "KA01AB1234",
+    "phone": "9876543210",
+    "model": "Honda City",
+    "password": "password",
+    "role": "user"
+  },
+  {
+    "id": 3,
+    "name": "Sanal",
+    "email": "sanalsajupes@gmail.com",
+    "plate": "KL39F2838",
+    "phone": "8921278851",
+    "model": "Hyundai i10",
+    "password": "9876",
+    "role": "user"
+  },
+  {
+    "id": 4,
+    "name": "babulu",
+    "email": "babulu321@gmail.com",
+    "plate": "KL39f3828",
+    "phone": "7698877654",
+    "model": "Honda Dio",
+    "password": "12345",
+    "role": "user"
+  },
+  {
+    "id": 5,
+    "name": "Nandana Ajai",
+    "email": "nandanaa176@gmail.com",
+    "plate": "KL25Q3714",
+    "phone": "8921278851",
+    "model": "Honda Dio",
+    "password": "1234567890",
+    "role": "user"
+  },
+  {
+    "id": 6,
+    "name": "hana",
+    "email": "hana@mail.com",
+    "plate": "KL39f3828",
+    "phone": "8921278851",
+    "model": "WAGONR",
+    "password": "23",
+    "role": "user"
+  }
+]
