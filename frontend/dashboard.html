@@ -39,8 +39,8 @@
                 <div class="menu-item hidden" onclick="switchTab('camera-gate')" id="menu-camera-gate">📹 Live Gate
                     Camera</div>
                 <div class="menu-item hidden" onclick="switchTab('staff')" id="menu-staff">👮 Staff Check-In</div>
-                <div class="menu-item hidden" onclick="switchTab('analytics')" id="menu-analytics">📈 Owner Analytics
-                </div>
+                <div class="menu-item hidden" onclick="switchTab('owner-bookings')" id="menu-owner-bookings">📅 Owner
+                    Dashboard</div>
                 <div class="menu-item" onclick="switchTab('profile')">👤 My Profile</div>
             </nav>
             <div style="margin-top: auto; padding: 1rem; border-top: 1px solid var(--border);">
@@ -494,12 +494,13 @@
                     </div>
                 </div>
             </div>
-            <!-- 9. Owner Analytics View -->
-            <div id="view-analytics" class="view-section hidden">
-                <h2>Owner Analytics</h2>
-                <p class="subtitle">Performance metrics for your parking properties.</p>
+            <!-- 8.5 Unified Owner Dashboard View -->
+            <div id="view-owner-bookings" class="view-section hidden">
+                <h2>Owner Dashboard</h2>
+                <p class="subtitle">Performance metrics and detailed booking records for your properties.</p>
 
-                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="stats-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 1.5rem; margin-bottom: 2rem;">
                     <div class="stat-card">
                         <h3>Total Bookings</h3>
                         <div class="stat-val" id="owner-stat-bookings">0</div>
@@ -518,12 +519,26 @@
                     </div>
                 </div>
 
-                <div class="card" style="margin-top: 2rem;">
-                    <h3>Historical Performance</h3>
-                    <div
-                        style="height: 300px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: #f8fafc; border-radius: 0.5rem; margin-top: 1rem;">
-                        [Performance Chart Rendering...]
-                    </div>
+                <h3>Booking History</h3>
+                <div class="card" style="margin-top: 1rem; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                        <thead>
+                            <tr
+                                style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body);">
+                                <th style="padding: 1rem;">Booking Details</th>
+                                <th style="padding: 1rem;">Parking Area</th>
+                                <th style="padding: 1rem;">Status</th>
+                                <th style="padding: 1rem;">Entry/Exit</th>
+                                <th style="padding: 1rem;">Check-in Method</th>
+                            </tr>
+                        </thead>
+                        <tbody id="owner-bookings-list">
+                            <tr>
+                                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                                    Loading bookings...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             <div id="view-list-land" class="view-section hidden">

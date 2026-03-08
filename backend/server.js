@@ -644,6 +644,64 @@ app.get('/api/owner/stats/:userId', async (req, res) => {
     }
 });
 
+// Get detailed bookings for all properties of an owner
+app.get('/api/owner/bookings/:userId', async (req, res) => {
+    try {
+        const ownerProperties = await ParkingArea.find({ ownerId: req.params.userId }).select('_id name');
+        const areaIds = ownerProperties.map(p => p._id);
+        const areaNames = ownerProperties.reduce((acc, p) => ({ ...acc, [p._id.toString()]: p.name }), {});
+
+        const bookings = await Booking.find({ parkingAreaId: { $in: areaIds } })
+            .populate('userId', 'name email')
+            .populate('vehicleId', 'vehicleNumber vehicleType')
+            .lean();
+
+        // Get entry details to determine check-in method
+        const bookingIds = bookings.map(b => b._id);
+        const entries = await ParkingEntry.find({ bookingId: { $in: bookingIds } }).lean();
+        const entryMap = entries.reduce((acc, e) => {
+            if (!acc[e.bookingId]) acc[e.bookingId] = [];
+            acc[e.bookingId].push(e);
+            return acc;
+        }, {});
+
+        const formattedBookings = bookings.map(b => {
+            const bEntries = entryMap[b._id.toString()] || [];
+            // Get latest entry if exists
+            let latestEntry = null;
+            if (bEntries.length > 0) {
+                bEntries.sort((x, y) => new Date(y.entryTime) - new Date(x.entryTime));
+                latestEntry = bEntries[0];
+            }
+
+            const now = new Date();
+            const isOverstay = b.status === 'in-progress' && now > new Date(b.endTime);
+
+            return {
+                _id: b._id,
+                userName: b.userId ? b.userId.name : 'Unknown User',
+                vehicleNumber: b.vehicleId ? b.vehicleId.vehicleNumber : 'Unknown Vehicle',
+                parkingAreaName: areaNames[b.parkingAreaId.toString()] || 'Unknown Area',
+                status: b.status,
+                startTime: b.startTime,
+                endTime: b.endTime,
+                entryTime: b.entryTime || (latestEntry ? latestEntry.entryTime : null),
+                exitTime: b.exitTime || (latestEntry ? latestEntry.exitTime : null),
+                entryMethod: latestEntry ? latestEntry.entryMethod : '-',
+                isOverstay: isOverstay
+            };
+        });
+
+        // Sort by newest booking first
+        formattedBookings.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+        res.json({ success: true, bookings: formattedBookings });
+    } catch (error) {
+        console.error("Owner Bookings Error:", error);
+        res.status(500).json({ success: false, message: "Error fetching owner bookings" });
+    }
+});
+
 app.post('/api/admin/listings/approve/:listingId', async (req, res) => {
     try {
         const listing = await ParkingListing.findById(req.params.listingId).populate('ownerId');

@@ -4,7 +4,7 @@ document.getElementById('user-name').innerText = user.name;
 
 function applyGating() {
     const isOwner = user.role === 'parking_owner' || user.role === 'admin';
-    const ownerItems = ['menu-camera-gate', 'menu-staff', 'menu-analytics', 'header-owner'];
+    const ownerItems = ['menu-camera-gate', 'menu-staff', 'menu-owner-bookings', 'header-owner'];
     ownerItems.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -52,7 +52,7 @@ function switchTab(tabId) {
     // Load data if needed
     if (tabId === 'ev') loadEVStations();
     if (tabId === 'nearby') loadNearby();
-    if (tabId === 'staff' || tabId === 'analytics' || tabId === 'camera-gate') {
+    if (tabId === 'staff' || tabId === 'camera-gate' || tabId === 'owner-bookings') {
         verifyOwnershipAndLoad(tabId);
     }
     if (tabId === 'profile') loadProfile();
@@ -180,8 +180,11 @@ async function verifyOwnershipAndLoad(tabId) {
 
         if (data.success && data.properties.length > 0) {
             if (tabId === 'staff') initStaffSystem();
-            if (tabId === 'analytics') loadOwnerAnalytics();
             if (tabId === 'camera-gate') initGateCamera();
+            if (tabId === 'owner-bookings') {
+                loadOwnerBookings();
+                loadOwnerAnalytics();
+            }
         } else {
             alert('Your property listings are pending approval. Features will unlock once approved.');
             switchTab('parking');
@@ -189,6 +192,57 @@ async function verifyOwnershipAndLoad(tabId) {
     } catch (err) {
         console.error('Ownership verify error:', err);
         switchTab('parking');
+    }
+}
+
+// --- Owner Bookings ---
+async function loadOwnerBookings() {
+    const list = document.getElementById('owner-bookings-list');
+    if (!list) return;
+
+    list.innerHTML = '<tr><td colspan="5" style="padding: 2rem; text-align: center;"><div class="loader"></div><p>Fetching bookings...</p></td></tr>';
+
+    try {
+        const res = await fetch(`/api/owner/bookings/${user._id}`);
+        const data = await res.json();
+
+        if (data.success && data.bookings.length > 0) {
+            list.innerHTML = data.bookings.map(b => {
+                const start = new Date(b.startTime);
+                const end = new Date(b.endTime);
+
+                const overstayAlert = b.isOverstay ? `<span style="color:#B91C1C; background:#FEF2F2; padding:0.2rem 0.5rem; border-radius:0.3rem; font-size:0.8rem; font-weight:600; display:inline-block; margin-top:0.4rem;">⚠️ OVERSTAY</span>` : '';
+
+                return `
+                    <tr style="border-bottom: 2px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                        <td style="padding: 1rem;">
+                            <div style="font-weight: 600; color: var(--primary-dark);">${b.userName}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">${b.vehicleNumber}</div>
+                        </td>
+                        <td style="padding: 1rem; font-weight: 500;">${b.parkingAreaName}</td>
+                        <td style="padding: 1rem;">
+                            <span class="badge" style="background:${getStatusColor(b.status)}20; color:${getStatusColor(b.status)}; font-size:0.75rem;">${b.status.toUpperCase()}</span>
+                            ${overstayAlert}
+                        </td>
+                        <td style="padding: 1rem; font-size: 0.85rem;">
+                            <div style="color: var(--text-muted);">Booked: ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            ${b.entryTime ? `<div style="color: #059669; margin-top:0.2rem;">In: ${new Date(b.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+                            ${b.exitTime ? `<div style="color: #64748b;">Out: ${new Date(b.exitTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+                        </td>
+                        <td style="padding: 1rem;">
+                            ${b.entryMethod === 'staff_scan' ? '<span style="background:#E0F2FE; color:#0369A1; padding:0.3rem 0.6rem; border-radius:1rem; font-size:0.8rem;">👨‍💼 Staff Entry</span>' :
+                        b.entryMethod === 'anpr_camera' ? '<span style="background:#DCFCE7; color:#15803D; padding:0.3rem 0.6rem; border-radius:1rem; font-size:0.8rem;">📷 Gate Camera</span>' :
+                            '<span style="color:var(--text-muted);">N/A</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            list.innerHTML = '<tr><td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-muted);">No bookings found for your properties.</td></tr>';
+        }
+    } catch (err) {
+        console.error("Owner bookings error:", err);
+        list.innerHTML = '<tr><td colspan="5" style="padding: 2rem; text-align: center; color: red;">Failed to load bookings.</td></tr>';
     }
 }
 
