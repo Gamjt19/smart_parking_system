@@ -473,13 +473,30 @@ function initDashboard() {
     loadDashboardVehicles();
 
     // Set default Filters
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentHours = String(now.getHours()).padStart(2, '0');
+    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+
+    // End time 1 hour from now
+    const later = new Date(now.getTime() + 60 * 60 * 1000);
+    const laterHours = String(later.getHours()).padStart(2, '0');
+    const laterMinutes = String(later.getMinutes()).padStart(2, '0');
+
     if (document.getElementById('booking-date')) {
         document.getElementById('booking-date').value = today;
         document.getElementById('booking-date').min = today; // Prevent past bookings
     }
-    if (document.getElementById('start-time')) document.getElementById('start-time').value = "10:30";
-    if (document.getElementById('end-time')) document.getElementById('end-time').value = "12:30";
+    if (document.getElementById('start-time')) document.getElementById('start-time').value = `${currentHours}:${currentMinutes}`;
+    if (document.getElementById('end-time')) document.getElementById('end-time').value = `${laterHours}:${laterMinutes}`;
+
+    // Auto-open tab from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabToOpen = urlParams.get('tab');
+    if (tabToOpen) {
+        setTimeout(() => switchTab(tabToOpen), 300);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 }
 
 async function loadDashboardVehicles() {
@@ -996,6 +1013,16 @@ function proceedToPayment() {
     const end = document.getElementById('end-time').value;
     const bookingDate = document.getElementById('booking-date')?.value || new Date().toISOString().split('T')[0];
     const plate = document.getElementById('dashboard-vehicle-select')?.value || "";
+
+    // Past Date Validation
+    if (bookingDate && start) {
+        const selectedTime = new Date(`${bookingDate}T${start}:00`);
+        const currentTime = new Date();
+        // Allow a small 5 minute grace period backwards for user hesitations
+        if (selectedTime < new Date(currentTime.getTime() - 5 * 60000)) {
+            return alert("You cannot book a parking slot in the past. Please select a valid future time.");
+        }
+    }
 
     window.location.href = `payment-gateway.html?slot=${slots}&location=${encodeURIComponent(location)}&areaId=${areaId}&date=${bookingDate}&start=${start}&end=${end}&amount=${amount}&hours=${duration}&plate=${plate}`;
 }

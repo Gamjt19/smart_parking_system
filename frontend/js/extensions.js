@@ -348,7 +348,7 @@ if (typeof socket !== 'undefined') {
 
     socket.on('vehicleEntered', (data) => {
         console.log('Real-time: Vehicle Entered', data);
-        if (typeof user !== 'undefined' && user && user._id && data.userId === user._id) {
+        if (typeof user !== 'undefined' && user && user._id && String(data.userId) === String(user._id)) {
             if (typeof fetchBookings === 'function') {
                 fetchBookings();
             }
@@ -357,7 +357,7 @@ if (typeof socket !== 'undefined') {
 
     socket.on('vehicleExited', (data) => {
         console.log('Real-time: Vehicle Exited', data);
-        if (typeof user !== 'undefined' && user && user._id && data.userId === user._id) {
+        if (typeof user !== 'undefined' && user && user._id && String(data.userId) === String(user._id)) {
             if (typeof fetchBookings === 'function') {
                 fetchBookings();
             }

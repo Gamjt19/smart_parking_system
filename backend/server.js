@@ -467,7 +467,11 @@ app.post('/api/parking/enter/:bookingId', async (req, res) => {
         if (slot) {
             slot.status = 'occupied';
             await slot.save();
+            io.emit('slotUpdated', { parkingAreaId: booking.parkingAreaId });
         }
+
+        // Emit real-time event
+        io.emit('vehicleEntered', { userId: booking.userId, parkingAreaId: booking.parkingAreaId });
 
         res.json({ success: true, message: "Vehicle entered", booking });
     } catch (error) {
@@ -1025,10 +1029,13 @@ app.post('/api/confirm-payment', async (req, res) => {
                 return res.json({ success: false, message: `Slot ${slot.slotNumber || slotLabel} is already occupied by someone else.` });
             }
 
-            // Parse dummy times
-            const now = new Date();
+            // Parse actual times
+            let startTime = new Date();
+            if (date && start) {
+                startTime = new Date(`${date}T${start}:00`);
+            }
             const bookedHours = parseInt(hours) || 1;
-            const endTime = new Date(now.getTime() + bookedHours * 3600000);
+            const endTime = new Date(startTime.getTime() + bookedHours * 3600000);
 
             const booking = new Booking({
                 bookingId: `BKG-${Date.now()}-${slotLabel}`,
@@ -1036,7 +1043,7 @@ app.post('/api/confirm-payment', async (req, res) => {
                 vehicleId: vehicle._id,
                 parkingAreaId: area._id,
                 slotId: slot._id,
-                startTime: now,
+                startTime: startTime,
                 endTime: endTime,
                 status: 'active'
             });
@@ -1161,6 +1168,64 @@ async function runOcrPass(imagePath, options = {}) {
         return null;
     }
 }
+
+// Live Gate Camera OCR Proxy
+app.post('/api/scan-plate-advanced', async (req, res) => {
+    try {
+        const { image } = req.body;
+        if (!image) return res.status(400).json({ success: false, message: "No image" });
+
+        // Convert base64 to buffer
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        const tempPath = `uploads/gate-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.jpg`;
+        fs.writeFileSync(tempPath, imageBuffer);
+
+        // Send to Python
+        const form = new FormData();
+        form.append('image', fs.createReadStream(tempPath));
+
+        try {
+            const anprRes = await axios.post('http://localhost:5000/detect-plate', form, {
+                headers: { ...form.getHeaders() },
+                timeout: 5000
+            });
+
+            fs.unlinkSync(tempPath);
+
+            if (anprRes.data.success && anprRes.data.plate) {
+                const cleanResult = anprRes.data.plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
+                const plate = correctPlateFormat(cleanResult);
+                const vehicle = await Vehicle.findOne({ vehicleNumber: plate }).populate('userId');
+
+                if (vehicle) {
+                    return res.json({
+                        success: true,
+                        vehicleFound: true,
+                        vehicleNumber: plate,
+                        ownerName: vehicle.userId ? vehicle.userId.name : 'Unknown User',
+                        vehicleType: vehicle.vehicleType
+                    });
+                } else {
+                    return res.json({
+                        success: true,
+                        vehicleFound: true,
+                        vehicleNumber: plate,
+                        ownerName: 'Unregistered Vehicle',
+                        vehicleType: 'Unknown'
+                    });
+                }
+            } else {
+                return res.json({ success: false, vehicleFound: false });
+            }
+        } catch (pythonError) {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+            return res.json({ success: false, vehicleFound: false });
+        }
+    } catch (err) {
+        return res.json({ success: false, vehicleFound: false });
+    }
+});
 
 // 1.4 Vehicle OCR (High Accuracy Upgrade)
 app.post('/api/plate/scan', upload.single('plateImage'), async (req, res) => {

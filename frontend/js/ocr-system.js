@@ -252,10 +252,11 @@ async function initStaffSystem() {
 
     try {
         const res = await fetch('/api/parking-areas');
-        const areas = await res.json();
+        const data = await res.json();
+        const areasList = data.areas || data || [];
 
         select.innerHTML = '<option value="">-- Choose Parking --</option>';
-        areas.forEach(a => {
+        areasList.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a._id;
             opt.innerText = a.name;
