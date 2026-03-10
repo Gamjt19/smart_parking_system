@@ -1091,24 +1091,25 @@ app.get('/api/bookings/user/:userId', async (req, res) => {
  * Corrects common OCR misidentifications based on Indian plate format (AA 00 AA 0000)
  */
 function correctPlateFormat(text) {
+    if (!text || text.length < 5) return text || '';
     let result = '';
     const MapToLetter = { '0': 'O', '1': 'I', '5': 'S', '6': 'G', '8': 'B', '2': 'Z' };
     const MapToNumber = { 'O': '0', 'I': '1', 'S': '5', 'G': '6', 'B': '8', 'Z': '2' };
 
     for (let i = 0; i < text.length; i++) {
         const char = text[i];
-        if (i === 0 || i === 1) {
+        if (i < 2) {
+            // First 2 always letters (State Code)
             result += MapToLetter[char] || char;
-        } else if (i === 2 || i === 3) {
+        } else if (i >= 2 && i < 4) {
+            // Next 2 always numbers (RTO Code)
             result += MapToNumber[char] || char;
-        } else if (i === 4 || i === 5) {
-            if (isNaN(char) || MapToLetter[char]) {
-                result += MapToLetter[char] || char;
-            } else {
-                result += char;
-            }
+        } else if (i >= text.length - 4) {
+            // Last 4 usually numbers (Vehicle Number)
+            result += MapToNumber[char] || char;
         } else {
-            result += MapToNumber[char] || char;
+            // Between RTO and last 4 digits are series letters
+            result += MapToLetter[char] || char;
         }
     }
     return result;
@@ -1192,7 +1193,7 @@ app.post('/api/scan-plate-advanced', async (req, res) => {
                     ...form.getHeaders(),
                     'Authorization': `Token ${process.env.PLATE_RECOGNIZER_API_KEY}`
                 },
-                timeout: 8000
+                timeout: 20000
             });
 
             // Cleanup temp file
@@ -1267,7 +1268,7 @@ app.post('/api/plate/scan', upload.single('plateImage'), async (req, res) => {
                     ...form.getHeaders(),
                     'Authorization': `Token ${process.env.PLATE_RECOGNIZER_API_KEY}`
                 },
-                timeout: 8000
+                timeout: 20000
             });
 
             if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
