@@ -116,15 +116,92 @@ async function submitPlateScan() {
                 body: formData
             });
             const data = await res.json();
-            renderScanResult(data);
-        } catch (err) {
-            console.error(err);
-            alert('High Accuracy OCR failed. Please check image quality.');
-        } finally {
+
+            // Re-enable UI but hide loader
             loading.classList.add('hidden');
             actions.classList.remove('hidden');
+
+            if (!data.success) {
+                renderScanResult(data);
+                return;
+            }
+
+            // Instead of jumping straight to result, show intermediate edit step!
+            renderEditStep(data);
+
+        } catch (err) {
+            console.error(err);
+            loading.classList.add('hidden');
+            actions.classList.remove('hidden');
+            alert('High Accuracy OCR failed. Please check image quality.');
         }
     }, 'image/png');
+}
+
+let lastOcrConfidence = 1.0;
+let lastOcrResults = [];
+
+function renderEditStep(data) {
+    const container = document.getElementById('scan-result');
+    container.classList.remove('hidden');
+
+    lastOcrConfidence = data.confidence || 1.0;
+    lastOcrResults = data.results || [];
+
+    // Auto-normalize
+    const defaultText = (data.plate || '').toUpperCase();
+
+    container.innerHTML = `
+        <div class="card" style="border-left: 4px solid var(--primary); text-align: center;">
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem;">📸 Plate Scanned</h3>
+            <p class="subtitle" style="margin-bottom: 1.5rem;">Please check and correct any OCR mistakes before proceeding:</p>
+            
+            <div class="input-group" style="max-width: 300px; margin: 0 auto 1.5rem auto;">
+                <input type="text" id="manual-edit-plate" value="${defaultText}" 
+                    style="font-family: monospace; font-size: 1.5rem; text-align: center; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline" style="flex: 1;" onclick="resetPlateScan()">Retake</button>
+                <button class="btn btn-primary" style="flex: 2;" onclick="verifyEditedPlate()">Confirm & Lookup Database</button>
+            </div>
+            <div id="verify-loader" class="hidden" style="margin-top:1rem;">
+                <div class="spinner" style="margin: 0 auto; display: block;"></div>
+                <p style="margin-top:0.5rem; font-size: 0.8rem;">Searching Database...</p>
+            </div>
+        </div>
+    `;
+}
+
+async function verifyEditedPlate() {
+    const inputField = document.getElementById('manual-edit-plate');
+    const verifyLoader = document.getElementById('verify-loader');
+
+    if (!inputField || !inputField.value) return alert("Please enter the plate number");
+
+    verifyLoader.classList.remove('hidden');
+    inputField.disabled = true;
+
+    try {
+        const res = await fetch('/api/plate/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plate: inputField.value,
+                confidence: lastOcrConfidence,
+                results: lastOcrResults
+            })
+        });
+        const data = await res.json();
+
+        // Pass to original render function
+        renderScanResult(data);
+    } catch (err) {
+        console.error(err);
+        alert('Database lookup failed.');
+        verifyLoader.classList.add('hidden');
+        inputField.disabled = false;
+    }
 }
 
 function renderScanResult(data) {

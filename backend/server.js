@@ -46,7 +46,8 @@ function calculateParkingCharge(entryTime, exitTime, pricingModel = '10min', bas
 dotenv.config();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // SERVE FRONTEND FROM NEW LOCATION
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -1169,11 +1170,11 @@ async function runOcrPass(imagePath, options = {}) {
     }
 }
 
-// Live Gate Camera OCR Proxy
+// Live Gate Camera OCR Proxy (PlateRecognizer Cloud Integration)
 app.post('/api/scan-plate-advanced', async (req, res) => {
     try {
         const { image } = req.body;
-        if (!image) return res.status(400).json({ success: false, message: "No image" });
+        if (!image) return res.status(400).json({ success: false, message: "No image provided" });
 
         // Convert base64 to buffer
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
@@ -1181,21 +1182,40 @@ app.post('/api/scan-plate-advanced', async (req, res) => {
         const tempPath = `uploads/gate-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.jpg`;
         fs.writeFileSync(tempPath, imageBuffer);
 
-        // Send to Python
+        // Send directly to PlateRecognizer Cloud API
         const form = new FormData();
-        form.append('image', fs.createReadStream(tempPath));
+        form.append('upload', fs.createReadStream(tempPath));
 
         try {
-            const anprRes = await axios.post('http://localhost:5000/detect-plate', form, {
-                headers: { ...form.getHeaders() },
-                timeout: 5000
+            const anprRes = await axios.post('https://api.platerecognizer.com/v1/plate-reader/', form, {
+                headers: {
+                    ...form.getHeaders(),
+                    'Authorization': `Token ${process.env.PLATE_RECOGNIZER_API_KEY}`
+                },
+                timeout: 8000
             });
 
-            fs.unlinkSync(tempPath);
+            // Cleanup temp file
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
-            if (anprRes.data.success && anprRes.data.plate) {
-                const cleanResult = anprRes.data.plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
+            // PlateRecognizer arrays detections under `results`
+            if (anprRes.data && anprRes.data.results && anprRes.data.results.length > 0) {
+
+                // Get the best detection
+                let bestMatch = anprRes.data.results[0];
+
+                // If it found multiple, pick the one with highest score
+                for (let r of anprRes.data.results) {
+                    if (r.score > bestMatch.score) bestMatch = r;
+                }
+
+                if (bestMatch.score < 0.6) {
+                    return res.json({ success: false, vehicleFound: false, message: "Plate detected but confidence is too low" });
+                }
+
+                const cleanResult = bestMatch.plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
                 const plate = correctPlateFormat(cleanResult);
+
                 const vehicle = await Vehicle.findOne({ vehicleNumber: plate }).populate('userId');
 
                 if (vehicle) {
@@ -1203,6 +1223,7 @@ app.post('/api/scan-plate-advanced', async (req, res) => {
                         success: true,
                         vehicleFound: true,
                         vehicleNumber: plate,
+                        confidence: bestMatch.score,
                         ownerName: vehicle.userId ? vehicle.userId.name : 'Unknown User',
                         vehicleType: vehicle.vehicleType
                     });
@@ -1211,133 +1232,143 @@ app.post('/api/scan-plate-advanced', async (req, res) => {
                         success: true,
                         vehicleFound: true,
                         vehicleNumber: plate,
+                        confidence: bestMatch.score,
                         ownerName: 'Unregistered Vehicle',
                         vehicleType: 'Unknown'
                     });
                 }
             } else {
-                return res.json({ success: false, vehicleFound: false });
+                return res.json({ success: false, vehicleFound: false, message: "No plate found by API" });
             }
-        } catch (pythonError) {
+        } catch (apiError) {
+            console.error(`[PlateRecognizer Error]:`, apiError.response ? apiError.response.data : apiError.message);
             if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-            return res.json({ success: false, vehicleFound: false });
+            return res.json({ success: false, vehicleFound: false, message: "API service error" });
         }
     } catch (err) {
-        return res.json({ success: false, vehicleFound: false });
+        console.error("Advanced Scan Error:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
-// 1.4 Vehicle OCR (High Accuracy Upgrade)
+// 1.4 Vehicle OCR (High Accuracy Upgrade - PlateRecognizer)
 app.post('/api/plate/scan', upload.single('plateImage'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
         const originalPath = req.file.path;
 
-        let bestResult = null;
-        let results = [];
+        console.log(`[OCR] Sending manual uploaded image to PlateRecognizer API...`);
+        const form = new FormData();
+        form.append('upload', fs.createReadStream(originalPath));
 
-        // --- Try Python ANPR Service First (Step 6) ---
         try {
-            console.log(`[OCR] Sending image to Python ANPR service...`);
-            const form = new FormData();
-            form.append('image', fs.createReadStream(originalPath));
-
-            const anprRes = await axios.post('http://localhost:5000/detect-plate', form, {
-                headers: { ...form.getHeaders() },
-                timeout: 10000 // 10s timeout
+            const anprRes = await axios.post('https://api.platerecognizer.com/v1/plate-reader/', form, {
+                headers: {
+                    ...form.getHeaders(),
+                    'Authorization': `Token ${process.env.PLATE_RECOGNIZER_API_KEY}`
+                },
+                timeout: 8000
             });
 
-            if (anprRes.data.success) {
-                console.log(`[OCR] Python ANPR success: ${anprRes.data.plate} (Conf: ${anprRes.data.confidence})`);
-                bestResult = {
-                    text: anprRes.data.plate,
-                    confidence: anprRes.data.confidence,
-                    isValid: true, // YOLO usually handles this, we'll trust it or keep existing validation
-                    rawText: anprRes.data.plate,
-                    isAnpr: true
-                };
+            if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
+
+            if (anprRes.data && anprRes.data.results && anprRes.data.results.length > 0) {
+                let bestMatch = anprRes.data.results[0];
+                for (let r of anprRes.data.results) {
+                    if (r.score > bestMatch.score) bestMatch = r;
+                }
+
+                if (bestMatch.score < 0.6) {
+                    return res.json({ success: false, message: "Could not clearly detect the plate. Please try a closer, steadier shot." });
+                }
+
+                const cleanResult = bestMatch.plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+                const plate = correctPlateFormat(cleanResult);
+
+                // Return the raw text immediately so the user can edit it
+                return res.json({
+                    success: true,
+                    plate: plate,
+                    rawText: bestMatch.plate,
+                    confidence: bestMatch.score,
+                    results: anprRes.data.results
+                });
+
+            } else {
+                return res.json({ success: false, message: "Could not clearly detect the plate. Please try a closer, steadier shot." });
             }
-        } catch (anprErr) {
-            let errMsg = anprErr.message;
-            if (anprErr.response && anprErr.response.data) {
-                console.error(`[OCR] Python ANPR error data:`, anprErr.response.data);
-                errMsg = anprErr.response.data.message || errMsg;
-            }
-            console.warn(`[OCR] Python ANPR service failed. Error: ${errMsg}`);
-            console.log(`[OCR] Falling back to local Multi-Pass OCR...`);
+
+        } catch (apiError) {
+            if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
+            console.error(`[PlateRecognizer Error]:`, apiError.response ? apiError.response.data : apiError.message);
+            return res.json({ success: false, message: "API service error, please try again." });
         }
+    } catch (err) {
+        console.error("Advanced Scan Error:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+});
 
-        // --- Fallback to Local Multi-Pass OCR if ANPR failed ---
-        if (!bestResult) {
-            const scanPasses = [
-                runOcrPass(originalPath),
-                runOcrPass(originalPath, { sharpen: true }),
-                runOcrPass(originalPath, { contrast: true })
-            ];
+// 1.4.1 Plate Verification (Post-Edit DB Match Step)
+app.post('/api/plate/verify', async (req, res) => {
+    try {
+        const { plate, confidence = 1.0, results = [] } = req.body;
+        if (!plate) return res.status(400).json({ success: false, message: "No plate provided" });
 
-            results = (await Promise.all(scanPasses)).filter(r => r !== null);
-            bestResult = results.find(r => r.isValid) || results.sort((a, b) => b.confidence - a.confidence)[0];
-        }
-
-        if (!bestResult || (!bestResult.isValid && bestResult.confidence < 0.4)) {
-            return res.json({ success: false, message: "Could not clearly detect the plate. Please try a closer, steadier shot." });
-        }
-
-        const detectedNumber = bestResult.text;
-        const normalizedDetected = detectedNumber.replace(/[^A-Z0-9]/g, '').toUpperCase();
-        console.log(`[OCR] Best Result: ${detectedNumber} (Normalized: ${normalizedDetected}, Conf: ${bestResult.confidence.toFixed(2)}, Valid: ${bestResult.isValid})`);
+        const normalizedPlate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        let matchConfidence = confidence;
 
         // Try exact match with normalized number
-        let vehicle = await Vehicle.findOne({ vehicleNumber: normalizedDetected }).populate('userId');
-        let matchConfidence = bestResult.confidence;
+        let vehicle = await Vehicle.findOne({ vehicleNumber: normalizedPlate }).populate('userId');
 
+        // If exact match fails, try fuzzy match on all vehicles since letters O and 0 can sometimes confuse it
         if (!vehicle) {
-            console.log(`[OCR] No exact match for ${normalizedDetected}. Attempting fuzzy match...`);
+            console.log(`[OCR Verify] No exact match for ${normalizedPlate}. Attempting fuzzy match...`);
             const allVehicles = await Vehicle.find({}).populate('userId');
             const vehicleNumbers = allVehicles.map(v => v.vehicleNumber.replace(/[^A-Z0-9]/g, '').toUpperCase());
 
             if (vehicleNumbers.length > 0) {
-                const matches = stringSimilarity.findBestMatch(normalizedDetected, vehicleNumbers);
+                const matches = stringSimilarity.findBestMatch(normalizedPlate, vehicleNumbers);
                 if (matches.bestMatch.rating > 0.8) {
                     vehicle = allVehicles[matches.bestMatchIndex];
-                    console.log(`[OCR] Fuzzy match found: ${vehicle.vehicleNumber} (Score: ${matches.bestMatch.rating.toFixed(2)})`);
+                    console.log(`[OCR Verify] Fuzzy match found: ${vehicle.vehicleNumber} (Score: ${matches.bestMatch.rating.toFixed(2)})`);
                     matchConfidence = matches.bestMatch.rating;
                 }
             }
         }
 
         if (vehicle) {
-            const phone = vehicle.userId.phone || '9999999999';
+            const phone = vehicle.userId ? (vehicle.userId.phone || '9999999999') : '9999999999';
             const maskedPhone = phone.toString().slice(0, 5) + 'XXXXX';
 
-            res.json({
+            return res.json({
                 success: true,
                 vehicleFound: true,
                 vehicleNumber: vehicle.vehicleNumber,
-                detectedPlate: detectedNumber,
-                ocrRawText: bestResult.rawText,
+                detectedPlate: normalizedPlate,
+                ocrRawText: normalizedPlate,
                 confidence: matchConfidence,
                 vehicleType: vehicle.vehicleType,
                 brand: vehicle.brand,
                 color: vehicle.color,
-                ownerName: vehicle.userId.name,
+                ownerName: vehicle.userId ? vehicle.userId.name : 'Unknown',
                 ownerContact: maskedPhone,
                 debug: { results }
             });
         } else {
-            res.json({
+            return res.json({
                 success: true,
                 vehicleFound: false,
-                detectedPlate: detectedNumber,
-                ocrRawText: bestResult.rawText,
-                confidence: bestResult.confidence,
-                isValid: bestResult.isValid,
+                detectedPlate: normalizedPlate,
+                ocrRawText: normalizedPlate,
+                confidence: matchConfidence,
+                isValid: true,
                 debug: { results }
             });
         }
     } catch (error) {
-        console.error("Advanced OCR Error:", error);
-        res.status(500).json({ success: false, message: "Advanced OCR processing failed" });
+        console.error("Verification Error:", error);
+        res.status(500).json({ success: false, message: "Verification processing failed" });
     }
 });
 
